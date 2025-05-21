@@ -7,6 +7,7 @@ pub struct Body {
     pub acc: Vec2,
     pub mass: f32,
     pub radius: f32,
+    pub color: [f32; 3], // Add color field
 }
 
 impl Body {
@@ -17,6 +18,7 @@ impl Body {
             acc: Vec2::zero(),
             mass,
             radius,
+            color: [0.0, 0.0, 0.0], // Default to black
         }
     }
 

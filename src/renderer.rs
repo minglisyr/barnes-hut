@@ -43,6 +43,10 @@ pub struct Renderer {
 
     bodies: Vec<Body>,
     quadtree: Vec<Node>,
+
+    last_fps_instant: std::time::Instant,
+    frame_counter: usize,
+    fps: f32,
 }
 
 impl quarkstrom::Renderer for Renderer {
@@ -66,6 +70,10 @@ impl quarkstrom::Renderer for Renderer {
 
             bodies: Vec::new(),
             quadtree: Vec::new(),
+
+            last_fps_instant: std::time::Instant::now(),
+            frame_counter: 0,
+            fps: 0.0,
         }
     }
 
@@ -165,7 +173,14 @@ impl quarkstrom::Renderer for Renderer {
         if !self.bodies.is_empty() {
             if self.show_bodies {
                 for i in 0..self.bodies.len() {
-                    ctx.draw_circle(self.bodies[i].pos, self.bodies[i].radius, [0xff; 4]);
+                    let c = self.bodies[i].color;
+                    let color = [
+                        (c[0].clamp(0.0, 1.0) * 255.0) as u8,
+                        (c[1].clamp(0.0, 1.0) * 255.0) as u8,
+                        (c[2].clamp(0.0, 1.0) * 255.0) as u8,
+                        255,
+                    ];
+                    ctx.draw_circle(self.bodies[i].pos, self.bodies[i].radius, color);
                 }
             }
 
@@ -241,6 +256,16 @@ impl quarkstrom::Renderer for Renderer {
                 }
             }
         }
+
+        // FPS calculation
+        self.frame_counter += 1;
+        let now = std::time::Instant::now();
+        let elapsed = now.duration_since(self.last_fps_instant).as_secs_f32();
+        if elapsed >= 0.5 {
+            self.fps = self.frame_counter as f32 / elapsed;
+            self.frame_counter = 0;
+            self.last_fps_instant = now;
+        }
     }
 
     fn gui(&mut self, ctx: &quarkstrom::egui::Context) {
@@ -258,6 +283,17 @@ impl quarkstrom::Renderer for Renderer {
                         ui.add(egui::DragValue::new(&mut range.1).speed(0.05));
                     });
                 }
+            });
+
+        // Add FPS and body count overlay (top-left)
+        egui::Window::new("Stats")
+            .title_bar(false)
+            .resizable(false)
+            .collapsible(false)
+            .anchor(egui::Align2::LEFT_TOP, [10.0, 10.0])
+            .show(ctx, |ui| {
+                ui.label(format!("FPS: {:.1}", self.fps));
+                ui.label(format!("Bodies: {}", self.bodies.len()));
             });
     }
 }

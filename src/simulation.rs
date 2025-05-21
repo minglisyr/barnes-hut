@@ -14,7 +14,7 @@ pub struct Simulation {
 impl Simulation {
     pub fn new() -> Self {
         let dt = 0.05;
-        let n = 100000;
+        let n = 200000;
         let theta = 1.0;
         let epsilon = 1.0;
         let leaf_capacity = 16;
@@ -35,6 +35,7 @@ impl Simulation {
         self.iterate();
         self.collide();
         self.attract();
+        self.update_colors();
         self.frame += 1;
     }
 
@@ -137,5 +138,46 @@ impl Simulation {
         self.bodies[j].vel = v2;
         self.bodies[i].pos += v1 * t;
         self.bodies[j].pos += v2 * t;
+    }
+
+    pub fn update_colors(&mut self) {
+        // Find min and max velocity magnitude for normalization
+        let (mut min_v, mut max_v) = (f32::MAX, f32::MIN);
+        for body in &self.bodies {
+            let v = body.vel.mag();
+            if v < min_v { min_v = v; }
+            if v > max_v { max_v = v; }
+        }
+        let range = (max_v - min_v).max(1e-5);
+
+        for (i, body) in self.bodies.iter_mut().enumerate() {
+            if i == 0 {
+                // Keep center body black
+                continue;
+            }
+            let v = body.vel.mag();
+            let t = ((v - min_v) / range).clamp(0.0, 1.0);
+            // Map t in [0,1] to color (blue -> cyan -> green -> yellow -> red)
+            // Hue from 240 (blue) to 0 (red)
+            let hue = 240.0 * (1.0 - t);
+            let (r, g, b) = Self::hsv_to_rgb(hue, 1.0, 1.0);
+            body.color = [r, g, b];
+        }
+    }
+
+    fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (f32, f32, f32) {
+        let c = v * s;
+        let h_ = h / 60.0;
+        let x = c * (1.0 - ((h_ % 2.0) - 1.0).abs());
+        let (r1, g1, b1) = match h_ as u32 {
+            0 => (c, x, 0.0),
+            1 => (x, c, 0.0),
+            2 => (0.0, c, x),
+            3 => (0.0, x, c),
+            4 => (x, 0.0, c),
+            5 | _ => (c, 0.0, x),
+        };
+        let m = v - c;
+        (r1 + m, g1 + m, b1 + m)
     }
 }

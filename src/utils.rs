@@ -8,7 +8,7 @@ pub fn uniform_disc(n: usize) -> Vec<Body> {
 
     let mut bodies: Vec<Body> = Vec::with_capacity(n);
 
-    let m = 1e6;
+    let m = 1e7;
     let center = Body::new(Vec2::zero(), Vec2::zero(), m as f32, inner_radius);
     bodies.push(center);
 
